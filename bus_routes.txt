@@ -1,0 +1,6 @@
+Main Gate Bus Stop|Route 101|City Railway Station|Every 20 mins (7:00 AM - 9:00 PM)|Main Gate, Admin Block, Security Office
+Main Gate Bus Stop|Route 102|Downtown / Central Bus Stand|Every 30 mins (7:30 AM - 8:30 PM)|Main Gate, Admin Block
+Main Gate Bus Stop|Route 105|International Airport|Hourly (6:00 AM - 8:00 PM)|Main Gate, Security Office
+Library Bus Stop|Campus Shuttle A|Hostel Complex & Sports Center|Every 15 mins (8:00 AM - 8:00 PM)|Central Library, Academic Block A, Auditorium
+Hostel Bus Stop|Campus Shuttle B|Academic Complex & Main Gate|Every 15 mins (7:00 AM - 9:00 PM)|Boys Hostel A & B, Girls Hostel, Sports Complex
+Hostel Bus Stop|Weekend Special|Metro Station & Shopping Mall|Weekends Every 1 hr (9:00 AM - 7:00 PM)|Hostel Complex, Guest House
