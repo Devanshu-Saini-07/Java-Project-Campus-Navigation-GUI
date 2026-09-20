@@ -1,3 +1,4 @@
+package com.campusnavigation.model;
 /**
  * Represents a specific location on the campus.
  * Contains metadata such as coordinates for map rendering, timings, and category.

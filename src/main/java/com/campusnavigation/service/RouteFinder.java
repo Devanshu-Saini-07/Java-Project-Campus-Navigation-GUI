@@ -1,4 +1,8 @@
+package com.campusnavigation.service;
+
 import java.util.*;
+import com.campusnavigation.model.CampusLocation;
+import com.campusnavigation.model.CampusEdge;
 
 /**
  * RouteFinder implements Dijkstra's Algorithm on the CampusGraph.

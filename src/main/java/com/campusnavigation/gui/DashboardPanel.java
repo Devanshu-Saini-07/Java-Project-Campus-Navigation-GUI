@@ -1,8 +1,15 @@
+package com.campusnavigation.gui;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
 import java.util.Collection;
 import java.util.Set;
+import com.campusnavigation.model.CampusLocation;
+import com.campusnavigation.model.BusRoute;
+import com.campusnavigation.repository.CampusDataManager;
+import com.campusnavigation.repository.FavoriteManager;
+import com.campusnavigation.repository.SearchHistory;
 
 /**
  * Main Dashboard Panel after successful login.
@@ -222,12 +229,6 @@ public class DashboardPanel extends Panel implements ActionListener, AdminPanel.
         sidebar.add(btnAdmin);
         sidebar.add(btnClear);
         sidebar.add(btnExit);
-
-        // SOUTH: Status Bar
-        Panel statusBar = new Panel(new BorderLayout(5, 5));
-        statusBar.setBackground(new Color(220, 225, 235));
-        statusBar.setPreferredSize(new Dimension(0, 30));
-        // We'll use parent's status label
 
         // Assemble
         add(topBar, BorderLayout.NORTH);
@@ -481,9 +482,6 @@ public class DashboardPanel extends Panel implements ActionListener, AdminPanel.
     private void applyTheme(boolean dark) {
         Color bg = dark ? new Color(40, 45, 55) : Color.LIGHT_GRAY;
         Color fg = dark ? Color.WHITE : Color.BLACK;
-        Color panelBg = dark ? new Color(35, 38, 45) : new Color(235, 238, 245);
-        Color topBg = dark ? new Color(30, 33, 40) : new Color(240, 242, 248);
-        Color statusBg = dark ? new Color(25, 28, 35) : new Color(220, 225, 235);
 
         setBackground(bg);
         setForeground(fg);

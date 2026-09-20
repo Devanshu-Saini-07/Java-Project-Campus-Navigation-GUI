@@ -1,3 +1,5 @@
+package com.campusnavigation.gui;
+
 import java.awt.*;
 import java.awt.event.*;
 
@@ -104,7 +106,6 @@ public class LoginPanel extends Panel implements ActionListener {
         // Now position components based on the panel's size
         int centerX = width / 2;
         int startY = height / 4;
-        int componentWidth = 180;
         int fieldWidth = 160;
         int spacing = 30;
 

@@ -1,3 +1,5 @@
+package com.campusnavigation.repository;
+
 import java.io.*;
 import java.util.*;
 
@@ -19,7 +21,6 @@ public class SearchHistory {
         if (query == null || query.trim().isEmpty()) return;
         String cleanQuery = query.trim();
 
-        // Avoid adjacent duplicate entries
         historyList.remove(cleanQuery);
         historyList.addFirst(cleanQuery);
 

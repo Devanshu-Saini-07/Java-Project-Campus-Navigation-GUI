@@ -1,3 +1,4 @@
+package com.campusnavigation.model;
 /**
  * Represents room details on campus (e.g., Room 101, CSE-201, LAB-01).
  */

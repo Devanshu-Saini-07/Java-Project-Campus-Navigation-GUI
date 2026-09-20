@@ -1,5 +1,10 @@
+package com.campusnavigation.gui;
+
 import java.awt.*;
 import java.awt.event.*;
+import java.util.List;
+import com.campusnavigation.model.RoomInfo;
+import com.campusnavigation.repository.CampusDataManager;
 
 /**
  * Room Finder Panel - Allows user to search for specific rooms (101, CSE-201, LAB-01, etc.)
@@ -75,7 +80,7 @@ public class RoomFinderPanel extends Panel implements ActionListener {
             return;
         }
 
-        java.util.List<RoomInfo> rooms = dataManager.searchRooms(query);
+        List<RoomInfo> rooms = dataManager.searchRooms(query);
         if (rooms.isEmpty()) {
             resultArea.setText("No room found for: \"" + query + "\"\n\nAvailable formats: Room numbers (101, 204), Department codes (CSE-201), or Lab codes (LAB-01).");
             return;

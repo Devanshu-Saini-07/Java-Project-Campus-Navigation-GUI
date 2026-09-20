@@ -1,6 +1,10 @@
+package com.campusnavigation.gui;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
+import com.campusnavigation.model.CampusLocation;
+import com.campusnavigation.repository.CampusDataManager;
 
 /**
  * Admin Panel for managing campus locations (Add, Update, Delete, View All).
@@ -106,7 +110,7 @@ public class AdminPanel extends Panel implements ActionListener {
         btnPanel.add(btnRefresh);
         btnPanel.add(btnClearForm);
 
-        formPanel.add(new Label("") );
+        formPanel.add(new Label(""));
         formPanel.add(btnPanel);
 
         // Right: Info Area

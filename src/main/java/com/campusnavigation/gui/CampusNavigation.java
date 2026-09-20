@@ -1,5 +1,10 @@
+package com.campusnavigation.gui;
+
 import java.awt.*;
 import java.awt.event.*;
+import com.campusnavigation.repository.CampusDataManager;
+import com.campusnavigation.repository.FavoriteManager;
+import com.campusnavigation.repository.SearchHistory;
 
 /**
  * Main entry point for the Campus Navigation GUI application.

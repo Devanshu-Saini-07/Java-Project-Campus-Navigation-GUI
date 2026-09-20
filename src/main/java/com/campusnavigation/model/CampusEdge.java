@@ -1,3 +1,4 @@
+package com.campusnavigation.model;
 /**
  * Represents a walkable path/edge between two campus locations in the graph.
  */

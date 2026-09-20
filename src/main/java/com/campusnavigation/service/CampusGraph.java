@@ -1,4 +1,8 @@
+package com.campusnavigation.service;
+
 import java.util.*;
+import com.campusnavigation.model.CampusLocation;
+import com.campusnavigation.model.CampusEdge;
 
 /**
  * Represents the Campus Map as a Graph data structure.

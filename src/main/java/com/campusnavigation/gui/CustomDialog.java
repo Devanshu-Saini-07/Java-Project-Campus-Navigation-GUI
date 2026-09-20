@@ -1,3 +1,5 @@
+package com.campusnavigation.gui;
+
 import java.awt.*;
 import java.awt.event.*;
 

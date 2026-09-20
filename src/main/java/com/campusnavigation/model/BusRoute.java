@@ -1,3 +1,4 @@
+package com.campusnavigation.model;
 /**
  * Represents a campus bus route with bus stop, route details, destination, and nearby landmarks.
  */

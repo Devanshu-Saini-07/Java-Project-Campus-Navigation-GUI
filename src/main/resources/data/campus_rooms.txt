@@ -1,0 +1,16 @@
+101|Academic Block A|1st Floor|First Year Cell|Smart Classroom with projector for 1st-year lectures.
+102|Academic Block A|1st Floor|Electronics Department|Basic Electronics Lecture Hall.
+105|Academic Block A|1st Floor|Electronics Lab|Hardware & Microcontroller testing lab.
+201|Academic Block A|2nd Floor|Programming Lab|100 i7 PCs configured for Java, C++, Python.
+204|Academic Block A|2nd Floor|Computer Science|CSE Department Staff Room & HOD Office.
+205|Academic Block A|2nd Floor|AI Lab|High performance GPU Lab for AI & Deep Learning.
+CSE-201|Academic Block A|2nd Floor|Computer Science|CSE Theory Classroom with interactive smart board.
+CSE-204|Academic Block A|2nd Floor|Computer Science|CSE Final Year Project Demonstration Lab.
+301|Academic Block A|3rd Floor|Networking Lab|Network Security, Router configuration Lab.
+304|Academic Block A|3rd Floor|Information Technology|IT Department HOD Office & Seminar Hall.
+LAB-01|Academic Block A|2nd Floor|Programming Lab|Central Coding & Competitive Programming Lab.
+LAB-02|Academic Block A|3rd Floor|Networking Lab|Cybersecurity & Network Systems Lab.
+MECH-101|Academic Block B|1st Floor|Mechanical Engineering|Thermodynamics & Fluid Mechanics Hall.
+CIVIL-201|Academic Block B|2nd Floor|Civil Engineering|Surveying & Structural Engineering Design Lab.
+ADM-01|Admin Block|Ground Floor|Accounts Section|Fee payment, scholarships, student accounting counter.
+ADM-02|Admin Block|1st Floor|Registrar Office|Student registration, marksheet, and degree verification.

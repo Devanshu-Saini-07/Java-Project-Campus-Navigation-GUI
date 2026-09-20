@@ -1,6 +1,11 @@
+package com.campusnavigation.gui;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
+import com.campusnavigation.model.CampusLocation;
+import com.campusnavigation.repository.CampusDataManager;
+import com.campusnavigation.service.RouteFinder;
 
 /**
  * Route Finder Panel - Allows user to select source and destination
