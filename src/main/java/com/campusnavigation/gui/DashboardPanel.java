@@ -88,6 +88,7 @@ public class DashboardPanel extends Panel implements ActionListener, AdminPanel.
     private Label routeSummaryLabel;
     private Button btnBackToList;
     private Button btnCustomRoute;
+    private Button btnTurnDirections;
     private Button btnClearRoute;
 
     // Additional Content Panels
@@ -104,7 +105,9 @@ public class DashboardPanel extends Panel implements ActionListener, AdminPanel.
     private Panel mapBtnPanel;
     private Panel mapNorthCombined;
 
-    // Routing & App State
+    // Routing & Security State
+    private com.campusnavigation.model.User currentUser = null;
+    private RouteFinder.RouteResult currentRouteResult = null;
     private boolean isDarkMode = false;
     private String currentView = "ALL";
     private String lastSearchQuery = "";
@@ -371,6 +374,13 @@ public class DashboardPanel extends Panel implements ActionListener, AdminPanel.
         btnCustomRoute.setForeground(Color.WHITE);
         btnCustomRoute.addActionListener(e -> showRouteFinder());
 
+        btnTurnDirections = new Button("Compass Directions");
+        btnTurnDirections.setFont(new Font("Arial", Font.BOLD, 11));
+        btnTurnDirections.setBackground(new Color(40, 110, 180));
+        btnTurnDirections.setForeground(Color.WHITE);
+        btnTurnDirections.setVisible(false);
+        btnTurnDirections.addActionListener(e -> showTurnByTurnDialog());
+
         btnClearRoute = new Button("Clear Route");
         btnClearRoute.setFont(new Font("Arial", Font.PLAIN, 11));
         btnClearRoute.setBackground(new Color(160, 60, 60));
@@ -379,6 +389,7 @@ public class DashboardPanel extends Panel implements ActionListener, AdminPanel.
 
         mapBtnPanel.add(btnBackToList);
         mapBtnPanel.add(btnCustomRoute);
+        mapBtnPanel.add(btnTurnDirections);
         mapBtnPanel.add(btnClearRoute);
 
         mapNorthCombined = new Panel(new BorderLayout());
@@ -587,12 +598,16 @@ public class DashboardPanel extends Panel implements ActionListener, AdminPanel.
         campusMap.setSelectedLocation(dest);
 
         if (result != null && result.getPath() != null) {
+            this.currentRouteResult = result;
+            btnTurnDirections.setVisible(true);
             campusMap.setActiveRoute(result.getPath());
             updateMapRouteBar(startLoc, dest, result);
             String accessText = accessibleOnly ? " [Barrier-Free Route]" : "";
             parent.setStatus("Route: " + startLoc.getName() + " -> " + dest.getName() +
                              " (" + result.getTotalDistance() + "m, ~" + result.getEstimatedMinutes() + " min walk)" + accessText);
         } else {
+            this.currentRouteResult = null;
+            btnTurnDirections.setVisible(false);
             campusMap.setActiveRoute(null);
             updateMapLocationOnly(dest);
             parent.setStatus("Selected: " + dest.getName() + " on campus map.");
@@ -633,14 +648,11 @@ public class DashboardPanel extends Panel implements ActionListener, AdminPanel.
         if (dest != null && result != null && result.getPath() != null) {
             String accessBadge = result.isWheelchairAccessible() ? " [Barrier-Free]" : "";
             routeDestLabel.setText("Route to: " + dest.getName() + " (" + dest.getBuilding() + ", Floor " + dest.getFloor() + ")" + accessBadge);
-            StringBuilder pathStr = new StringBuilder();
-            List<CampusLocation> path = result.getPath();
-            for (int i = 0; i < path.size(); i++) {
-                pathStr.append(path.get(i).getName());
-                if (i < path.size() - 1) pathStr.append(" -> ");
-            }
+            String firstTurn = (result.getTurnByTurnDirections() != null && !result.getTurnByTurnDirections().isEmpty())
+                               ? " | Turn 1: " + result.getTurnByTurnDirections().get(0)
+                               : "";
             routeSummaryLabel.setText("Distance: " + result.getTotalDistance() + "m | Est. Walk: ~" +
-                                     result.getEstimatedMinutes() + " min | Path: " + pathStr.toString());
+                                     result.getEstimatedMinutes() + " min" + firstTurn);
         } else if (dest != null) {
             updateMapLocationOnly(dest);
         }
@@ -671,13 +683,44 @@ public class DashboardPanel extends Panel implements ActionListener, AdminPanel.
         }
     }
 
+    private void showTurnByTurnDialog() {
+        if (currentRouteResult == null || currentRouteResult.getTurnByTurnDirections() == null || currentRouteResult.getTurnByTurnDirections().isEmpty()) {
+            CustomDialog.showMessage(parent, "Compass Directions", "No active route calculated. Select any building to see turn-by-turn directions.");
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("CAMPUS TURN-BY-TURN COMPASS DIRECTIONS\n");
+        sb.append("=====================================================\n\n");
+        List<String> steps = currentRouteResult.getTurnByTurnDirections();
+        for (int i = 0; i < steps.size(); i++) {
+            sb.append(i + 1).append(". ").append(steps.get(i)).append("\n\n");
+        }
+        sb.append("=====================================================\n");
+        sb.append("Total Distance: ").append(currentRouteResult.getTotalDistance()).append(" meters\n");
+        sb.append("Estimated Time: ~").append(currentRouteResult.getEstimatedMinutes()).append(" minute(s) walk\n");
+        sb.append("Accessibility: ").append(currentRouteResult.isWheelchairAccessible() ? "Barrier-Free Ramps & Paved" : "Standard Campus Pathways");
+
+        CustomDialog.showMessage(parent, "Turn-by-Turn Directions", sb.toString());
+    }
+
+    public void onUserSessionChanged(com.campusnavigation.model.User user) {
+        this.currentUser = user;
+        if (btnAdmin != null) {
+            boolean isAdmin = (user != null && user.getRole().canAccessAdminPanel());
+            btnAdmin.setLabel(isAdmin ? "Admin Panel" : "Admin Panel [Locked]");
+        }
+    }
+
     private void clearRouteOnMap() {
         campusMap.clearHighlights();
         currentSelectedDest = null;
+        currentRouteResult = null;
+        if (btnTurnDirections != null) btnTurnDirections.setVisible(false);
         btnMultimodal.setVisible(false);
         btnIndoorPlan.setVisible(false);
         routeDestLabel.setText("Select any building on the map or click a location card to calculate walking route.");
-        routeSummaryLabel.setText("Zoom: Mouse Wheel or [+] [-] | Pan: Click & Drag | Double-buffered smooth graphics");
+        routeSummaryLabel.setText("Zoom: Mouse Wheel or [+] [-] | Pan: Click & Drag | Live route beacon animation");
         parent.setStatus("Map route cleared.");
     }
 

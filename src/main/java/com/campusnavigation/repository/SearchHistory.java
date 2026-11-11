@@ -58,13 +58,10 @@ public class SearchHistory {
     }
 
     private void saveHistory() {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(HISTORY_FILE))) {
-            for (String query : historyList) {
-                writer.write(query);
-                writer.newLine();
-            }
+        try {
+            AtomicFileUtil.writeAtomic(HISTORY_FILE, new ArrayList<>(historyList));
         } catch (IOException e) {
-            System.err.println("Warning: Could not save to " + HISTORY_FILE + ": " + e.getMessage());
+            System.err.println("Warning: Could not atomic-save to " + HISTORY_FILE + ": " + e.getMessage());
         }
     }
 }

@@ -56,13 +56,10 @@ public class FavoriteManager {
     }
 
     private void saveFavorites() {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FAVORITES_FILE))) {
-            for (String id : favoriteIds) {
-                writer.write(id);
-                writer.newLine();
-            }
+        try {
+            AtomicFileUtil.writeAtomic(FAVORITES_FILE, new ArrayList<>(favoriteIds));
         } catch (IOException e) {
-            System.err.println("Warning: Could not save to " + FAVORITES_FILE + ": " + e.getMessage());
+            System.err.println("Warning: Could not atomic-save to " + FAVORITES_FILE + ": " + e.getMessage());
         }
     }
 }

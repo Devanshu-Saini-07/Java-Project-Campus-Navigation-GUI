@@ -91,7 +91,7 @@ public class LoginPanel extends Panel implements ActionListener {
         exitButton.addActionListener(this);
 
         // Footnotes
-        lblHint = new Label("Default Access: ID: admin  |  Password: 123");
+        lblHint = new Label("Roles: admin (123) | student (student123) | faculty (faculty123)");
         lblHint.setFont(new Font("Arial", Font.PLAIN, 10));
         lblHint.setForeground(new Color(95, 110, 130));
         lblHint.setBackground(cardFill);
@@ -314,11 +314,12 @@ public class LoginPanel extends Panel implements ActionListener {
             return;
         }
 
-        if (user.equals("admin") && pass.equals("123")) {
+        com.campusnavigation.model.User authenticatedUser = parent.getUserManager().authenticate(user, pass);
+        if (authenticatedUser != null) {
             messageLabel.setText(" ");
-            parent.onLoginSuccess();
+            parent.onLoginSuccess(authenticatedUser);
         } else {
-            messageLabel.setText("Invalid credentials. Try admin / 123");
+            messageLabel.setText("Invalid credentials. Try admin/123 or student/student123");
             passwordField.setText("");
             passwordField.requestFocus();
         }

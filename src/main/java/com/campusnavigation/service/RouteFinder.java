@@ -5,9 +5,9 @@ import com.campusnavigation.model.CampusLocation;
 import com.campusnavigation.model.CampusEdge;
 
 /**
- * RouteFinder implements Dijkstra's Algorithm on the CampusGraph.
- * Calculates the shortest path, total distance in meters, and estimated walking time.
- * Designed clearly for college-level Data Structures & Algorithms learning.
+ * RouteFinder implements Dijkstra's and A* (A-Star) Pathfinding Algorithms on the CampusGraph.
+ * Calculates optimal shortest paths, accessibility constraints (wheelchair/ramps),
+ * multimodal bus transitions, and generates turn-by-turn compass directions.
  */
 public class RouteFinder {
 
@@ -19,22 +19,29 @@ public class RouteFinder {
         private int totalDistance;      // in meters
         private int estimatedMinutes;   // estimated walking time
         private boolean isWheelchairAccessible;
+        private List<String> turnByTurnDirections;
 
         public RouteResult(List<CampusLocation> path, int totalDistance) {
-            this(path, totalDistance, true);
+            this(path, totalDistance, true, Collections.emptyList());
         }
 
         public RouteResult(List<CampusLocation> path, int totalDistance, boolean isWheelchairAccessible) {
+            this(path, totalDistance, isWheelchairAccessible, Collections.emptyList());
+        }
+
+        public RouteResult(List<CampusLocation> path, int totalDistance, boolean isWheelchairAccessible, List<String> directions) {
             this.path = path;
             this.totalDistance = totalDistance;
             this.isWheelchairAccessible = isWheelchairAccessible;
             this.estimatedMinutes = totalDistance == 0 ? 0 : Math.max(1, (int) Math.ceil(totalDistance / 70.0));
+            this.turnByTurnDirections = directions != null ? directions : Collections.emptyList();
         }
 
         public List<CampusLocation> getPath() { return path; }
         public int getTotalDistance() { return totalDistance; }
         public int getEstimatedMinutes() { return estimatedMinutes; }
         public boolean isWheelchairAccessible() { return isWheelchairAccessible; }
+        public List<String> getTurnByTurnDirections() { return turnByTurnDirections; }
 
         public String getFormattedRoute() {
             if (path == null || path.isEmpty()) {
@@ -43,26 +50,34 @@ public class RouteFinder {
 
             StringBuilder sb = new StringBuilder();
             sb.append("=====================================================\n");
-            sb.append(isWheelchairAccessible ? " ♿ ACCESSIBLE WHEELCHAIR ROUTE (RAMPS & PAVED)\n" : " SHORTEST CAMPUS ROUTE\n");
+            sb.append(isWheelchairAccessible ? " ACCESSIBLE BARRIER-FREE ROUTE (RAMPS & PAVED)\n" : " SHORTEST CAMPUS ROUTE (A* / DIJKSTRA)\n");
             sb.append("=====================================================\n\n");
             sb.append(" Route:\n ");
             for (int i = 0; i < path.size(); i++) {
                 sb.append(path.get(i).getName());
                 if (i < path.size() - 1) {
-                    sb.append("  ➔  ");
+                    sb.append("  ->  ");
                 }
             }
             sb.append("\n\n");
             sb.append(" Total Distance:         ").append(totalDistance).append(" meters\n");
             sb.append(" Estimated Walking Time: ").append(estimatedMinutes).append(" minute(s)\n");
-            sb.append(" Mobility / Accessibility: ").append(isWheelchairAccessible ? "♿ 100% Barrier-free (Ramps/Paved)" : "Standard (may contain stairs)").append("\n");
-            sb.append("\n Step-by-Step Directions:\n");
-            for (int i = 0; i < path.size() - 1; i++) {
-                CampusLocation from = path.get(i);
-                CampusLocation to = path.get(i + 1);
-                sb.append("  ").append(i + 1).append(". Walk from ")
-                  .append(from.getName()).append(" to ").append(to.getName())
-                  .append(" (").append(to.getBuilding()).append(")\n");
+            sb.append(" Mobility / Accessibility: ").append(isWheelchairAccessible ? "Barrier-free (Ramps/Paved)" : "Standard (may contain stairs)").append("\n");
+
+            if (turnByTurnDirections != null && !turnByTurnDirections.isEmpty()) {
+                sb.append("\n Turn-by-Turn Directions:\n");
+                for (int i = 0; i < turnByTurnDirections.size(); i++) {
+                    sb.append("  ").append(i + 1).append(". ").append(turnByTurnDirections.get(i)).append("\n");
+                }
+            } else {
+                sb.append("\n Step-by-Step Waypoints:\n");
+                for (int i = 0; i < path.size() - 1; i++) {
+                    CampusLocation from = path.get(i);
+                    CampusLocation to = path.get(i + 1);
+                    sb.append("  ").append(i + 1).append(". Walk from ")
+                      .append(from.getName()).append(" to ").append(to.getName())
+                      .append(" (").append(to.getBuilding()).append(")\n");
+                }
             }
             sb.append("=====================================================");
             return sb.toString();
@@ -105,25 +120,23 @@ public class RouteFinder {
         public String getSummaryText() { return summaryText; }
     }
 
-    /**
-     * Finds the shortest path between startLocationId and targetLocationId using Dijkstra's Algorithm.
-     *
-     * Algorithm Steps:
-     * 1. Initialize distance table: set distance to infinity for all nodes except startNode (0).
-     * 2. Use a PriorityQueue (min-heap) to greedily explore the node with the smallest known distance.
-     * 3. For the current node, relax all outgoing edges to adjacent neighbors.
-     * 4. If a shorter path to a neighbor is discovered, update its distance and set current node as its predecessor.
-     * 5. Backtrack from target to start using the predecessor map to reconstruct the path.
-     */
     public static RouteResult findShortestPath(CampusGraph graph, String startId, String targetId) {
         return findShortestPath(graph, startId, targetId, false);
     }
 
     /**
      * Finds the shortest path using Dijkstra's algorithm with optional wheelchair accessible filtering.
-     * When accessibleOnly is true, non-accessible edges (e.g. stairs) are skipped.
      */
     public static RouteResult findShortestPath(CampusGraph graph, String startId, String targetId, boolean accessibleOnly) {
+        return findShortestPathAStar(graph, startId, targetId, accessibleOnly);
+    }
+
+    /**
+     * A* (A-Star) Pathfinding Algorithm.
+     * Uses Euclidean spatial distance as an admissible heuristic h(n) = sqrt(dx^2 + dy^2) * scale,
+     * guiding search directly towards the target and expanding fewer branches than Dijkstra.
+     */
+    public static RouteResult findShortestPathAStar(CampusGraph graph, String startId, String targetId, boolean accessibleOnly) {
         if (graph == null || startId == null || targetId == null) {
             return null;
         }
@@ -131,32 +144,39 @@ public class RouteFinder {
         if (startId.equals(targetId)) {
             CampusLocation loc = graph.getLocation(startId);
             if (loc != null) {
-                return new RouteResult(Collections.singletonList(loc), 0, true);
+                return new RouteResult(Collections.singletonList(loc), 0, true,
+                        Collections.singletonList("You are already at " + loc.getName()));
             }
             return null;
         }
 
-        Map<String, Integer> distances = new HashMap<>();
+        CampusLocation targetLoc = graph.getLocation(targetId);
+        if (targetLoc == null) return null;
+
+        Map<String, Integer> gScore = new HashMap<>();
+        Map<String, Double> fScore = new HashMap<>();
         Map<String, String> predecessors = new HashMap<>();
-        PriorityQueue<NodeDistance> pq = new PriorityQueue<>(Comparator.comparingInt(n -> n.distance));
+        PriorityQueue<AStarNode> openSet = new PriorityQueue<>(Comparator.comparingDouble(n -> n.fScore));
+        Set<String> closedSet = new HashSet<>();
 
         for (CampusLocation loc : graph.getAllLocations()) {
-            distances.put(loc.getId(), Integer.MAX_VALUE);
+            gScore.put(loc.getId(), Integer.MAX_VALUE);
+            fScore.put(loc.getId(), Double.MAX_VALUE);
         }
 
-        distances.put(startId, 0);
-        pq.add(new NodeDistance(startId, 0));
+        gScore.put(startId, 0);
+        double startH = computeHeuristic(graph.getLocation(startId), targetLoc);
+        fScore.put(startId, startH);
+        openSet.add(new AStarNode(startId, startH));
 
-        Set<String> visited = new HashSet<>();
-
-        while (!pq.isEmpty()) {
-            NodeDistance current = pq.poll();
+        while (!openSet.isEmpty()) {
+            AStarNode current = openSet.poll();
             String currId = current.nodeId;
 
-            if (visited.contains(currId)) continue;
-            visited.add(currId);
-
             if (currId.equals(targetId)) break;
+
+            if (closedSet.contains(currId)) continue;
+            closedSet.add(currId);
 
             for (CampusEdge edge : graph.getNeighbors(currId)) {
                 if (accessibleOnly && !edge.isWheelchairAccessible()) {
@@ -164,18 +184,22 @@ public class RouteFinder {
                 }
 
                 String neighborId = edge.getDestinationId();
-                if (visited.contains(neighborId)) continue;
+                if (closedSet.contains(neighborId)) continue;
 
-                int newDist = distances.get(currId) + edge.getDistance();
-                if (newDist < distances.get(neighborId)) {
-                    distances.put(neighborId, newDist);
+                int tentativeG = gScore.get(currId) + edge.getDistance();
+                if (tentativeG < gScore.get(neighborId)) {
                     predecessors.put(neighborId, currId);
-                    pq.add(new NodeDistance(neighborId, newDist));
+                    gScore.put(neighborId, tentativeG);
+
+                    double h = computeHeuristic(graph.getLocation(neighborId), targetLoc);
+                    double f = tentativeG + h;
+                    fScore.put(neighborId, f);
+                    openSet.add(new AStarNode(neighborId, f));
                 }
             }
         }
 
-        if (distances.get(targetId) == null || distances.get(targetId) == Integer.MAX_VALUE) {
+        if (gScore.get(targetId) == null || gScore.get(targetId) == Integer.MAX_VALUE) {
             return null; // No path found
         }
 
@@ -189,7 +213,6 @@ public class RouteFinder {
             }
             String prev = predecessors.get(step);
             if (prev != null) {
-                // Check if the edge was accessible
                 for (CampusEdge e : graph.getNeighbors(prev)) {
                     if (e.getDestinationId().equals(step) && !e.isWheelchairAccessible()) {
                         allAccessible = false;
@@ -200,12 +223,84 @@ public class RouteFinder {
             step = prev;
         }
 
-        return new RouteResult(path, distances.get(targetId), allAccessible);
+        List<String> turnDirections = generateTurnByTurnDirections(path, graph);
+        return new RouteResult(path, gScore.get(targetId), allAccessible, turnDirections);
+    }
+
+    /**
+     * Admissible Euclidean heuristic h(n) scaled so h(n) <= true distance.
+     */
+    private static double computeHeuristic(CampusLocation from, CampusLocation to) {
+        if (from == null || to == null) return 0.0;
+        double dx = from.getX() - to.getX();
+        double dy = from.getY() - to.getY();
+        // Campus scale: 1 coordinate unit is roughly 0.6 to 1.0 meter
+        return Math.sqrt(dx * dx + dy * dy) * 0.55;
+    }
+
+    /**
+     * Computes intuitive turn-by-turn compass directions based on vector angle changes.
+     */
+    public static List<String> generateTurnByTurnDirections(List<CampusLocation> path, CampusGraph graph) {
+        List<String> directions = new ArrayList<>();
+        if (path == null || path.size() < 2) {
+            if (path != null && path.size() == 1) {
+                directions.add("You are at " + path.get(0).getName() + ".");
+            }
+            return directions;
+        }
+
+        for (int i = 0; i < path.size() - 1; i++) {
+            CampusLocation cur = path.get(i);
+            CampusLocation next = path.get(i + 1);
+
+            int dist = (graph != null) ? graph.getDistance(cur.getId(), next.getId()) : 0;
+            String distText = (dist > 0) ? " for " + dist + "m" : "";
+
+            if (i == 0) {
+                directions.add("Start at " + cur.getName() + ". Walk straight towards " + next.getName() + distText + ".");
+            } else {
+                CampusLocation prev = path.get(i - 1);
+                double v1x = cur.getX() - prev.getX();
+                double v1y = cur.getY() - prev.getY();
+                double v2x = next.getX() - cur.getX();
+                double v2y = next.getY() - cur.getY();
+
+                double angle1 = Math.atan2(v1y, v1x);
+                double angle2 = Math.atan2(v2y, v2x);
+                double diff = Math.toDegrees(angle2 - angle1);
+
+                while (diff > 180.0) diff -= 360.0;
+                while (diff < -180.0) diff += 360.0;
+
+                String turnVerb;
+                if (Math.abs(diff) <= 25.0) {
+                    turnVerb = "Continue straight towards";
+                } else if (diff > 25.0 && diff <= 65.0) {
+                    turnVerb = "Bear right towards";
+                } else if (diff > 65.0 && diff <= 120.0) {
+                    turnVerb = "Turn right towards";
+                } else if (diff > 120.0) {
+                    turnVerb = "Make a sharp right towards";
+                } else if (diff < -25.0 && diff >= -65.0) {
+                    turnVerb = "Bear left towards";
+                } else if (diff < -65.0 && diff >= -120.0) {
+                    turnVerb = "Turn left towards";
+                } else {
+                    turnVerb = "Make a sharp left towards";
+                }
+
+                directions.add(turnVerb + " " + next.getName() + distText + " (" + next.getBuilding() + ").");
+            }
+        }
+
+        CampusLocation dest = path.get(path.size() - 1);
+        directions.add("Arrive at destination: " + dest.getName() + " (" + dest.getBuilding() + ", Floor " + dest.getFloor() + ").");
+        return directions;
     }
 
     /**
      * Determines whether combining a campus shuttle bus with walking is faster than purely walking.
-     * Evaluates stops: LOC21 (Main Bus Stop), LOC22 (Library Bus Stop), LOC23 (Hostel Bus Stop).
      */
     public static MultimodalOption findMultimodalRoute(CampusGraph graph, String startId, String targetId) {
         if (graph == null || startId == null || targetId == null || startId.equals(targetId)) {
@@ -214,7 +309,7 @@ public class RouteFinder {
 
         RouteResult walkDirect = findShortestPath(graph, startId, targetId, false);
         if (walkDirect == null || walkDirect.getTotalDistance() < 250) {
-            return null; // For short distances, walking is already fastest
+            return null;
         }
 
         String[] busStops = {"LOC21", "LOC22", "LOC23"};
@@ -258,16 +353,13 @@ public class RouteFinder {
         return null;
     }
 
-    /**
-     * Helper class representing a node and its tentative distance in the PriorityQueue.
-     */
-    private static class NodeDistance {
+    private static class AStarNode {
         String nodeId;
-        int distance;
+        double fScore;
 
-        NodeDistance(String nodeId, int distance) {
+        AStarNode(String nodeId, double fScore) {
             this.nodeId = nodeId;
-            this.distance = distance;
+            this.fScore = fScore;
         }
     }
 }

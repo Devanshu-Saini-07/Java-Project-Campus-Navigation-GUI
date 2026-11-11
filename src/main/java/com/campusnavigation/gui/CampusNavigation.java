@@ -2,13 +2,16 @@ package com.campusnavigation.gui;
 
 import java.awt.*;
 import java.awt.event.*;
+import com.campusnavigation.model.User;
+import com.campusnavigation.model.UserRole;
 import com.campusnavigation.repository.CampusDataManager;
 import com.campusnavigation.repository.FavoriteManager;
 import com.campusnavigation.repository.SearchHistory;
+import com.campusnavigation.repository.UserManager;
 
 /**
  * Main entry point for the Campus Navigation GUI application.
- * Manages login, theme switching, and switching between panels using CardLayout.
+ * Manages user authentication, theme switching, and switching between panels using CardLayout.
  */
 public class CampusNavigation extends Frame implements ActionListener {
 
@@ -17,10 +20,12 @@ public class CampusNavigation extends Frame implements ActionListener {
     private LoginPanel loginPanel;
     private DashboardPanel dashboardPanel;
 
-    // Managers
+    // Managers & Security
     private CampusDataManager dataManager;
     private FavoriteManager favoriteManager;
     private SearchHistory searchHistory;
+    private UserManager userManager;
+    private User currentUser;
 
     // Status bar
     private Panel statusBar;
@@ -29,10 +34,11 @@ public class CampusNavigation extends Frame implements ActionListener {
     public CampusNavigation() {
         super("Campus Navigation Login");
 
-        // Initialize managers
+        // Initialize managers & security
         this.dataManager = new CampusDataManager();
         this.favoriteManager = new FavoriteManager();
         this.searchHistory = new SearchHistory();
+        this.userManager = new UserManager();
 
         // Setup main window
         setLayout(new BorderLayout());
@@ -78,14 +84,20 @@ public class CampusNavigation extends Frame implements ActionListener {
         setVisible(true);
     }
 
+    public UserManager getUserManager() { return userManager; }
+    public User getCurrentUser() { return currentUser; }
+
     // From LoginPanel callback
-    public void onLoginSuccess() {
+    public void onLoginSuccess(User user) {
+        this.currentUser = user;
+        dashboardPanel.onUserSessionChanged(user);
         cardLayout.show(cards, "DASHBOARD");
-        setTitle("Campus Navigation Dashboard");
-        statusLabel.setText(" Status: Logged in as admin | Application Ready ");
+        setTitle("Campus Navigation Dashboard - " + user.getDisplayName() + " [" + user.getRole().getTitle() + "]");
+        statusLabel.setText(" Status: Logged in as " + user.getUsername() + " (" + user.getRole().getTitle() + ") | Application Ready ");
     }
 
     public void onLogout() {
+        this.currentUser = null;
         cardLayout.show(cards, "LOGIN");
         setTitle("Campus Navigation Login");
         statusLabel.setText(" Status: Logged out ");

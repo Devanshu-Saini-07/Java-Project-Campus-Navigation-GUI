@@ -234,14 +234,15 @@ public class CampusDataManager {
         }
     }
 
-    public void saveLocations() {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(DATA_FILE))) {
-            for (CampusLocation loc : locations.values()) {
-                writer.write(loc.toFileString());
-                writer.newLine();
-            }
+    public synchronized void saveLocations() {
+        List<String> lines = new ArrayList<>();
+        for (CampusLocation loc : locations.values()) {
+            lines.add(loc.toFileString());
+        }
+        try {
+            AtomicFileUtil.writeAtomic(DATA_FILE, lines);
         } catch (IOException e) {
-            System.err.println("Error saving to " + DATA_FILE + ": " + e.getMessage());
+            System.err.println("Error atomic-saving to " + DATA_FILE + ": " + e.getMessage());
         }
     }
 

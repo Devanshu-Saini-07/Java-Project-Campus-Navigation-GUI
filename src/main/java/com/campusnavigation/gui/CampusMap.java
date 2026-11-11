@@ -36,6 +36,10 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
     // Double buffering offscreen buffer
     private Image offscreenImage;
 
+    // Live route animation timer & state
+    private java.util.Timer animTimer = null;
+    private float animationProgress = 0.0f;
+
     // Node rendering dimensions
     private static final int NODE_WIDTH = 70;
     private static final int NODE_HEIGHT = 30;
@@ -63,6 +67,11 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
 
     public void setActiveRoute(List<CampusLocation> route) {
         this.activeRoute = route;
+        if (route != null && route.size() >= 2) {
+            startAnimation();
+        } else {
+            stopAnimation();
+        }
         repaint();
     }
 
@@ -91,7 +100,32 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
         this.selectedLocation = null;
         this.hoveredLocation = null;
         this.activeRoute = null;
+        stopAnimation();
         repaint();
+    }
+
+    private synchronized void startAnimation() {
+        stopAnimation();
+        animationProgress = 0.0f;
+        animTimer = new java.util.Timer(true);
+        animTimer.scheduleAtFixedRate(new java.util.TimerTask() {
+            @Override
+            public void run() {
+                animationProgress += 0.015f;
+                if (animationProgress > 1.0f) {
+                    animationProgress = 0.0f;
+                }
+                repaint();
+            }
+        }, 50, 30);
+    }
+
+    private synchronized void stopAnimation() {
+        if (animTimer != null) {
+            animTimer.cancel();
+            animTimer = null;
+        }
+        animationProgress = 0.0f;
     }
 
     public void setDarkMode(boolean darkMode) {
@@ -268,6 +302,8 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
             for (CampusLocation loc : activeRoute) {
                 drawLocationNode(g2d, loc);
             }
+            // Live animated pulsing beacon traveling from origin to destination
+            drawAnimatedRouteBeacon(g2d);
         } else if (selectedLocation != null) {
             // Single location selected without a route
             drawLocationNode(g2d, selectedLocation);
@@ -387,6 +423,33 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
         g2d.setColor(new Color(230, 50, 20));
         g2d.fillPolygon(xPoints, yPoints, 3);
         g2d.setColor(prevColor);
+    }
+
+    private void drawAnimatedRouteBeacon(Graphics2D g2d) {
+        if (activeRoute == null || activeRoute.size() < 2) return;
+
+        int segments = activeRoute.size() - 1;
+        float scaledProgress = animationProgress * segments;
+        int segIndex = Math.min(segments - 1, (int) Math.floor(scaledProgress));
+        float t = scaledProgress - segIndex;
+
+        Point p1 = getScreenPos(activeRoute.get(segIndex));
+        Point p2 = getScreenPos(activeRoute.get(segIndex + 1));
+
+        int bx = (int) Math.round(p1.x + (p2.x - p1.x) * t);
+        int by = (int) Math.round(p1.y + (p2.y - p1.y) * t);
+
+        // Pulsing glow rings
+        int pulseRadius = 7 + (int)(5 * Math.sin(animationProgress * Math.PI * 6));
+        g2d.setColor(new Color(255, 193, 7, 100)); // Gold aura
+        g2d.fillOval(bx - pulseRadius, by - pulseRadius, pulseRadius * 2, pulseRadius * 2);
+
+        // Core beacon dot
+        g2d.setColor(new Color(255, 235, 59));
+        g2d.fillOval(bx - 5, by - 5, 10, 10);
+        g2d.setColor(new Color(210, 80, 0));
+        g2d.setStroke(new BasicStroke(1.5f));
+        g2d.drawOval(bx - 5, by - 5, 10, 10);
     }
 
     private void drawLocationNode(Graphics2D g2d, CampusLocation loc) {

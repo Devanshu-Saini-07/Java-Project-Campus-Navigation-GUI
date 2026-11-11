@@ -29,7 +29,12 @@ public class CampusLocation {
         this.timings = timings.trim();
         this.x = x;
         this.y = y;
-        this.aliases = aliases.trim();
+        this.aliases = aliases != null ? aliases.trim() : "";
+    }
+
+    public CampusLocation(String id, String name, String category, String building,
+                          String floor, String description, String timings, int x, int y) {
+        this(id, name, category, building, floor, description, "", timings, x, y, "");
     }
 
     // Getters and Setters
