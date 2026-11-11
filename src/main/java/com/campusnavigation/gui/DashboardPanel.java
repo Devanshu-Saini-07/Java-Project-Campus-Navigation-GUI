@@ -932,10 +932,10 @@ public class DashboardPanel extends Panel implements ActionListener, AdminPanel.
         List<BusRoute> routes = dataManager.getAllBusRoutes();
 
         headerTitle.setText(" Campus Bus Routes & Timings (" + routes.size() + " active routes)");
-        headerSubtitle.setText(" Click on any stop button below to view its route and location on the campus map.");
+        headerSubtitle.setText(" Click any bus route card or 'Show on Map' button to view its location on the campus map.");
 
         cardsContainer.removeAll();
-        cardsContainer.setLayout(new GridLayout(routes.size(), 1, 0, 8));
+        cardsContainer.setLayout(new GridLayout(Math.max(1, routes.size()), 1, 0, 6));
 
         for (BusRoute route : routes) {
             cardsContainer.add(createBusRouteCard(route));
@@ -945,54 +945,112 @@ public class DashboardPanel extends Panel implements ActionListener, AdminPanel.
         cardsWrapper.validate();
         scrollPane.validate();
         cardLayout.show(cardPanel, "CATEGORY");
-        parent.setStatus("Bus routes displayed. Click any stop to view on map.");
+        parent.setStatus("Bus routes displayed. Click any route to view stop on map.");
+    }
+
+    public CampusLocation resolveBusStopLocation(BusRoute route) {
+        if (route == null) return null;
+        String stop = route.getStopName().trim();
+        CampusLocation loc = dataManager.getLocationByName(stop);
+        if (loc != null) return loc;
+
+        String sLower = stop.toLowerCase();
+        if (sLower.contains("main")) {
+            loc = dataManager.getLocationById("LOC21");
+            if (loc != null) return loc;
+        }
+        if (sLower.contains("library")) {
+            loc = dataManager.getLocationById("LOC22");
+            if (loc != null) return loc;
+        }
+        if (sLower.contains("hostel")) {
+            loc = dataManager.getLocationById("LOC23");
+            if (loc != null) return loc;
+        }
+
+        List<CampusLocation> matches = dataManager.searchLocations(stop);
+        for (CampusLocation m : matches) {
+            if ("Bus Stop".equalsIgnoreCase(m.getCategory())) return m;
+        }
+        if (!matches.isEmpty()) return matches.get(0);
+        return null;
+    }
+
+    public void showBusLocation(BusRoute route) {
+        if (route == null) return;
+        CampusLocation stopLoc = resolveBusStopLocation(route);
+        if (stopLoc != null) {
+            showRouteToLocation(stopLoc);
+            routeDestLabel.setText("Bus Stop: " + stopLoc.getName() + " [" + route.getRouteNumber() + " -> " + route.getDestination() + "]");
+            routeSummaryLabel.setText("Timings: " + route.getTimings() + " | Nearby: " + route.getNearbyLocations());
+            parent.setStatus("Bus " + route.getRouteNumber() + " at " + stopLoc.getName() + " displayed on map.");
+        } else {
+            parent.setStatus("Bus stop for " + route.getRouteNumber() + " not found.");
+        }
     }
 
     private Panel createBusRouteCard(BusRoute route) {
         Color cardBg = isDarkMode ? new Color(34, 40, 54) : Color.WHITE;
-        Panel card = new Panel(new BorderLayout(8, 4));
+
+        Panel card = new Panel(new BorderLayout(8, 2)) {
+            @Override
+            public Dimension getPreferredSize() {
+                return new Dimension(450, 48);
+            }
+        };
         card.setBackground(cardBg);
 
-        Panel header = new Panel(new FlowLayout(FlowLayout.LEFT, 8, 2));
-        header.setBackground(cardBg);
+        // Left Text Panel: Row 1 = Title/Destination, Row 2 = Timings & Nearby
+        Panel textPanel = new Panel(new GridLayout(2, 1, 0, 1));
+        textPanel.setBackground(cardBg);
 
-        Label lblName = new Label("Bus Route " + route.getRouteNumber() + " -> " + route.getDestination());
-        lblName.setFont(new Font("Arial", Font.BOLD, 12));
-        lblName.setBackground(cardBg);
-        lblName.setForeground(isDarkMode ? new Color(255, 205, 110) : new Color(160, 90, 15));
+        Label lblTitle = new Label("Bus " + route.getRouteNumber() + " -> " + route.getDestination());
+        lblTitle.setFont(new Font("Arial", Font.BOLD, 12));
+        lblTitle.setBackground(cardBg);
+        lblTitle.setForeground(isDarkMode ? new Color(255, 205, 110) : new Color(160, 90, 15));
 
-        Label lblTiming = new Label(" | Timings: " + route.getTimings() + " | Near: " + route.getNearbyLocations());
-        lblTiming.setFont(new Font("Arial", Font.PLAIN, 11));
-        lblTiming.setBackground(cardBg);
-        lblTiming.setForeground(isDarkMode ? new Color(175, 185, 200) : new Color(90, 100, 115));
+        Label lblDetails = new Label("Stop: " + route.getStopName() + " | Timings: " + route.getTimings() + " | Near: " + route.getNearbyLocations());
+        lblDetails.setFont(new Font("Arial", Font.PLAIN, 10));
+        lblDetails.setBackground(cardBg);
+        lblDetails.setForeground(isDarkMode ? new Color(175, 185, 200) : new Color(90, 100, 115));
 
-        header.add(lblName);
-        header.add(lblTiming);
+        textPanel.add(lblTitle);
+        textPanel.add(lblDetails);
 
-        Panel stopPanel = new Panel(new FlowLayout(FlowLayout.RIGHT, 6, 2));
-        stopPanel.setBackground(cardBg);
+        // Right Action Button
+        Panel actionPanel = new Panel(new FlowLayout(FlowLayout.RIGHT, 6, 8));
+        actionPanel.setBackground(cardBg);
 
-        Button btnStop = new Button("Route to " + route.getStopName());
-        btnStop.setFont(new Font("Arial", Font.BOLD, 10));
-        btnStop.setBackground(new Color(35, 120, 215));
-        btnStop.setForeground(Color.WHITE);
+        Button btnShow = new Button("Show on Map");
+        btnShow.setFont(new Font("Arial", Font.BOLD, 11));
+        btnShow.setBackground(new Color(35, 120, 215));
+        btnShow.setForeground(Color.WHITE);
+        btnShow.addActionListener(e -> showBusLocation(route));
+        actionPanel.add(btnShow);
 
-        btnStop.addActionListener(e -> {
-            CampusLocation loc = dataManager.getLocationByName(route.getStopName());
-            if (loc == null) {
-                List<CampusLocation> matches = dataManager.searchLocations(route.getStopName());
-                if (!matches.isEmpty()) loc = matches.get(0);
+        card.add(textPanel, BorderLayout.CENTER);
+        card.add(actionPanel, BorderLayout.EAST);
+
+        // Entire Card Clickable
+        MouseAdapter clickListener = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showBusLocation(route);
             }
-            if (loc != null) {
-                showRouteToLocation(loc);
-            } else {
-                parent.setStatus("Stop '" + route.getStopName() + "' selected.");
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                card.setCursor(new Cursor(Cursor.HAND_CURSOR));
             }
-        });
+            @Override
+            public void mouseExited(MouseEvent e) {
+                card.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+            }
+        };
+        card.addMouseListener(clickListener);
+        textPanel.addMouseListener(clickListener);
+        lblTitle.addMouseListener(clickListener);
+        lblDetails.addMouseListener(clickListener);
 
-        stopPanel.add(btnStop);
-        card.add(header, BorderLayout.CENTER);
-        card.add(stopPanel, BorderLayout.EAST);
         return card;
     }
 
