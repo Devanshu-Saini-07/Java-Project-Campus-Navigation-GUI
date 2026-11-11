@@ -314,7 +314,7 @@ public class CampusDataManager {
             graph.addLocation(loc);
         }
         for (CampusEdge edge : edges) {
-            graph.addEdge(edge.getSourceId(), edge.getDestinationId(), edge.getDistance());
+            graph.addEdge(edge.getSourceId(), edge.getDestinationId(), edge.getDistance(), edge.isWheelchairAccessible(), edge.getPathType());
         }
     }
 

@@ -24,6 +24,13 @@ public class AdminPanel extends Panel implements ActionListener {
     private TextArea infoArea;
     private Choice locChoice;
 
+    private Panel formPanel;
+    private Panel topSelection;
+    private Panel btnPanel;
+    private Label lblSelection;
+    private java.util.List<Label> formLabels = new ArrayList<>();
+    private java.util.List<TextField> formFields = new ArrayList<>();
+
     public AdminPanel(CampusDataManager dataManager, AdminRefreshCallback callback) {
         this.dataManager = dataManager;
         this.refreshCallback = callback;
@@ -32,53 +39,32 @@ public class AdminPanel extends Panel implements ActionListener {
         buildComponents();
     }
 
+    private void addField(Panel p, String labelText, TextField tf) {
+        Label lbl = new Label(labelText);
+        formLabels.add(lbl);
+        formFields.add(tf);
+        p.add(lbl);
+        p.add(tf);
+    }
+
     private void buildComponents() {
         // Left: Input Form
-        Panel formPanel = new Panel(new GridLayout(11, 2, 5, 5));
+        formPanel = new Panel(new GridLayout(11, 2, 5, 5));
         formPanel.setBackground(new Color(245, 248, 252));
 
-        formPanel.add(new Label("Location Name:"));
-        txtName = new TextField();
-        formPanel.add(txtName);
-
-        formPanel.add(new Label("Category:"));
-        txtCategory = new TextField();
-        formPanel.add(txtCategory);
-
-        formPanel.add(new Label("Building:"));
-        txtBuilding = new TextField();
-        formPanel.add(txtBuilding);
-
-        formPanel.add(new Label("Floor:"));
-        txtFloor = new TextField();
-        formPanel.add(txtFloor);
-
-        formPanel.add(new Label("Description:"));
-        txtDesc = new TextField();
-        formPanel.add(txtDesc);
-
-        formPanel.add(new Label("Nearby Places:"));
-        txtNearby = new TextField();
-        formPanel.add(txtNearby);
-
-        formPanel.add(new Label("Timings:"));
-        txtTimings = new TextField();
-        formPanel.add(txtTimings);
-
-        formPanel.add(new Label("X Coordinate (map):"));
-        txtX = new TextField();
-        formPanel.add(txtX);
-
-        formPanel.add(new Label("Y Coordinate (map):"));
-        txtY = new TextField();
-        formPanel.add(txtY);
-
-        formPanel.add(new Label("Aliases (comma separated):"));
-        txtAliases = new TextField();
-        formPanel.add(txtAliases);
+        txtName = new TextField(); addField(formPanel, "Location Name:", txtName);
+        txtCategory = new TextField(); addField(formPanel, "Category:", txtCategory);
+        txtBuilding = new TextField(); addField(formPanel, "Building:", txtBuilding);
+        txtFloor = new TextField(); addField(formPanel, "Floor:", txtFloor);
+        txtDesc = new TextField(); addField(formPanel, "Description:", txtDesc);
+        txtNearby = new TextField(); addField(formPanel, "Nearby Places:", txtNearby);
+        txtTimings = new TextField(); addField(formPanel, "Timings:", txtTimings);
+        txtX = new TextField(); addField(formPanel, "X Coordinate (map):", txtX);
+        txtY = new TextField(); addField(formPanel, "Y Coordinate (map):", txtY);
+        txtAliases = new TextField(); addField(formPanel, "Aliases (comma separated):", txtAliases);
 
         // Buttons
-        Panel btnPanel = new Panel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        btnPanel = new Panel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         btnPanel.setBackground(new Color(245, 248, 252));
 
         btnAdd = new Button("Add Location");
@@ -110,7 +96,9 @@ public class AdminPanel extends Panel implements ActionListener {
         btnPanel.add(btnRefresh);
         btnPanel.add(btnClearForm);
 
-        formPanel.add(new Label(""));
+        Panel spacer = new Panel();
+        spacer.setBackground(new Color(245, 248, 252));
+        formPanel.add(spacer);
         formPanel.add(btnPanel);
 
         // Right: Info Area
@@ -119,9 +107,10 @@ public class AdminPanel extends Panel implements ActionListener {
         infoArea.setFont(new Font("Monospaced", Font.PLAIN, 11));
 
         // Top: Selection dropdown
-        Panel topSelection = new Panel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        topSelection = new Panel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         topSelection.setBackground(new Color(245, 248, 252));
-        topSelection.add(new Label("Select Existing Location:"));
+        lblSelection = new Label("Select Existing Location:");
+        topSelection.add(lblSelection);
         locChoice = new Choice();
         locChoice.add("-- Select --");
         refreshLocationChoice();
@@ -132,6 +121,39 @@ public class AdminPanel extends Panel implements ActionListener {
         add(infoArea, BorderLayout.CENTER);
 
         refreshInfo();
+    }
+
+    public void applyTheme(boolean dark) {
+        Color bg = dark ? new Color(28, 34, 46) : Color.WHITE;
+        Color formBg = dark ? new Color(34, 40, 54) : new Color(245, 248, 252);
+        Color fg = dark ? Color.WHITE : Color.BLACK;
+        Color textBg = dark ? new Color(22, 26, 36) : Color.WHITE;
+
+        setBackground(bg);
+        if (topSelection != null) topSelection.setBackground(formBg);
+        if (formPanel != null) formPanel.setBackground(formBg);
+        if (btnPanel != null) btnPanel.setBackground(formBg);
+        if (lblSelection != null) {
+            lblSelection.setBackground(formBg);
+            lblSelection.setForeground(fg);
+        }
+
+        for (Label l : formLabels) {
+            l.setBackground(formBg);
+            l.setForeground(fg);
+        }
+        for (TextField tf : formFields) {
+            tf.setBackground(dark ? new Color(38, 44, 58) : Color.WHITE);
+            tf.setForeground(fg);
+        }
+        if (locChoice != null) {
+            locChoice.setBackground(dark ? new Color(38, 44, 58) : Color.WHITE);
+            locChoice.setForeground(dark ? Color.WHITE : Color.BLACK);
+        }
+        if (infoArea != null) {
+            infoArea.setBackground(textBg);
+            infoArea.setForeground(fg);
+        }
     }
 
     public void refreshTable() {

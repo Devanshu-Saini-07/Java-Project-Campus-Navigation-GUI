@@ -25,6 +25,15 @@ public class RouteFinderPanel extends Panel implements ActionListener {
     private TextArea resultArea;
     private RouteCallback routeCallback;
 
+    private Panel topPanel;
+    private Panel topWrapper;
+    private Panel btnPanel;
+    private Panel centerPanel;
+    private Panel centerWrapper;
+    private Label lblFrom;
+    private Label lblTo;
+    private Label lblDetails;
+
     public RouteFinderPanel(CampusDataManager dataManager) {
         this.dataManager = dataManager;
         setLayout(new BorderLayout(10, 10));
@@ -56,35 +65,93 @@ public class RouteFinderPanel extends Panel implements ActionListener {
 
     private void buildLayout() {
         // Top panel with dropdowns
-        Panel topPanel = new Panel(new GridLayout(3, 2, 10, 10));
+        topPanel = new Panel(new GridLayout(3, 2, 10, 10));
         topPanel.setBackground(new Color(245, 248, 252));
-        // Simple inset using an empty panel wrapper
-        Panel topWrapper = new Panel(new BorderLayout());
+        topWrapper = new Panel(new BorderLayout());
         topWrapper.add(topPanel, BorderLayout.CENTER);
 
-        topPanel.add(new Label("From Location:"));
+        lblFrom = new Label("From Location:");
+        lblTo = new Label("To Location:");
+        topPanel.add(lblFrom);
         topPanel.add(sourceChoice);
-        topPanel.add(new Label("To Location:"));
+        topPanel.add(lblTo);
         topPanel.add(destChoice);
 
-        Panel btnPanel = new Panel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        btnPanel = new Panel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         btnPanel.setBackground(new Color(245, 248, 252));
         btnPanel.add(findRouteBtn);
         btnPanel.add(clearBtn);
-        topPanel.add(new Label("")); // spacer
+        Panel spacer = new Panel();
+        spacer.setBackground(new Color(245, 248, 252));
+        topPanel.add(spacer);
         topPanel.add(btnPanel);
 
         // Center: Results
-        Panel centerPanel = new Panel(new BorderLayout(5, 5));
-        Panel centerWrapper = new Panel(new BorderLayout());
+        centerPanel = new Panel(new BorderLayout(5, 5));
+        centerWrapper = new Panel(new BorderLayout());
         centerWrapper.add(centerPanel, BorderLayout.CENTER);
-        centerPanel.add(new Label("Route Details:", Label.LEFT), BorderLayout.NORTH);
+        lblDetails = new Label("Route Details:", Label.LEFT);
+        centerPanel.add(lblDetails, BorderLayout.NORTH);
         centerPanel.add(resultArea, BorderLayout.CENTER);
 
         add(topWrapper, BorderLayout.NORTH);
         add(centerWrapper, BorderLayout.CENTER);
 
         populateChoices();
+    }
+
+    public void applyTheme(boolean dark) {
+        Color bg = dark ? new Color(28, 34, 46) : Color.WHITE;
+        Color panelBg = dark ? new Color(34, 40, 54) : new Color(245, 248, 252);
+        Color fg = dark ? Color.WHITE : Color.BLACK;
+        Color textBg = dark ? new Color(22, 26, 36) : Color.WHITE;
+
+        setBackground(bg);
+        if (topPanel != null) topPanel.setBackground(panelBg);
+        if (topWrapper != null) topWrapper.setBackground(panelBg);
+        if (btnPanel != null) btnPanel.setBackground(panelBg);
+        if (centerPanel != null) centerPanel.setBackground(bg);
+        if (centerWrapper != null) centerWrapper.setBackground(bg);
+        if (lblFrom != null) {
+            lblFrom.setBackground(panelBg);
+            lblFrom.setForeground(fg);
+        }
+        if (lblTo != null) {
+            lblTo.setBackground(panelBg);
+            lblTo.setForeground(fg);
+        }
+        if (lblDetails != null) {
+            lblDetails.setBackground(bg);
+            lblDetails.setForeground(fg);
+        }
+        if (sourceChoice != null) {
+            sourceChoice.setBackground(dark ? new Color(38, 44, 58) : Color.WHITE);
+            sourceChoice.setForeground(dark ? Color.WHITE : Color.BLACK);
+        }
+        if (destChoice != null) {
+            destChoice.setBackground(dark ? new Color(38, 44, 58) : Color.WHITE);
+            destChoice.setForeground(dark ? Color.WHITE : Color.BLACK);
+        }
+        if (resultArea != null) {
+            resultArea.setBackground(textBg);
+            resultArea.setForeground(fg);
+        }
+    }
+
+    public void selectLocations(String srcName, String destName) {
+        for (int i = 0; i < sourceChoice.getItemCount(); i++) {
+            if (sourceChoice.getItem(i).startsWith(srcName)) {
+                sourceChoice.select(i);
+                break;
+            }
+        }
+        for (int i = 0; i < destChoice.getItemCount(); i++) {
+            if (destChoice.getItem(i).startsWith(destName)) {
+                destChoice.select(i);
+                break;
+            }
+        }
+        findShortestRoute();
     }
 
     private void populateChoices() {

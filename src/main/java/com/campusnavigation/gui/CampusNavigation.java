@@ -23,6 +23,7 @@ public class CampusNavigation extends Frame implements ActionListener {
     private SearchHistory searchHistory;
 
     // Status bar
+    private Panel statusBar;
     private Label statusLabel;
 
     public CampusNavigation() {
@@ -46,10 +47,12 @@ public class CampusNavigation extends Frame implements ActionListener {
         loginPanel = new LoginPanel(this);
 
         // Add status bar FIRST (so statusLabel exists before dashboard uses it)
-        Panel statusBar = new Panel(new BorderLayout());
+        statusBar = new Panel(new BorderLayout());
         statusBar.setBackground(new Color(220, 225, 235));
         statusLabel = new Label(" Status: Ready ", Label.LEFT);
         statusLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        statusLabel.setBackground(new Color(220, 225, 235));
+        statusLabel.setForeground(new Color(30, 45, 75));
         statusBar.add(statusLabel, BorderLayout.WEST);
 
         // Create dashboard
@@ -93,28 +96,20 @@ public class CampusNavigation extends Frame implements ActionListener {
     }
 
     public void applyTheme(boolean darkMode) {
-        Color bg = darkMode ? new Color(40, 45, 55) : Color.LIGHT_GRAY;
-        Color fg = darkMode ? Color.WHITE : Color.BLACK;
+        Color bg = darkMode ? new Color(22, 26, 35) : new Color(240, 244, 250);
+        Color statusBg = darkMode ? new Color(18, 22, 30) : new Color(220, 225, 235);
+        Color statusFg = darkMode ? new Color(205, 220, 240) : new Color(30, 45, 75);
 
         setBackground(bg);
-
-        // Update all child components recursively
-        updateComponentColors(this, darkMode);
-    }
-
-    private void updateComponentColors(Component comp, boolean darkMode) {
-        if (comp instanceof Container) {
-            comp.setBackground(darkMode ? new Color(45, 50, 60) : Color.WHITE);
-            comp.setForeground(darkMode ? Color.WHITE : Color.BLACK);
-            for (Component child : ((Container) comp).getComponents()) {
-                updateComponentColors(child, darkMode);
-            }
-        } else {
-            if (comp instanceof Button) {
-                // Buttons keep their custom colors
-            } else {
-                comp.setForeground(darkMode ? Color.WHITE : Color.BLACK);
-            }
+        if (statusBar != null) {
+            statusBar.setBackground(statusBg);
+        }
+        if (statusLabel != null) {
+            statusLabel.setBackground(statusBg);
+            statusLabel.setForeground(statusFg);
+        }
+        if (loginPanel != null) {
+            loginPanel.applyTheme(darkMode);
         }
     }
 

@@ -13,7 +13,7 @@ import com.campusnavigation.service.CampusGraph;
  * Enhanced Campus Map with coordinate scaling, double buffering, smooth hover effects,
  * and clean geometric category markers.
  */
-public class CampusMap extends Canvas implements MouseListener, MouseMotionListener {
+public class CampusMap extends Canvas implements MouseListener, MouseMotionListener, MouseWheelListener {
 
     public interface MapSelectionListener {
         void onLocationSelected(CampusLocation location);
@@ -25,6 +25,13 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
     private List<CampusLocation> activeRoute;
     private MapSelectionListener selectionListener;
     private boolean isDarkMode = false;
+
+    // Zoom & Pan state
+    private double zoomFactor = 1.0;
+    private int panOffsetX = 0;
+    private int panOffsetY = 0;
+    private Point dragStart = null;
+    private boolean isDragging = false;
 
     // Double buffering offscreen buffer
     private Image offscreenImage;
@@ -42,6 +49,7 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
         this.hoveredLocation = null;
         addMouseListener(this);
         addMouseMotionListener(this);
+        addMouseWheelListener(this);
     }
 
     public void setSelectionListener(MapSelectionListener listener) {
@@ -55,6 +63,27 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
 
     public void setActiveRoute(List<CampusLocation> route) {
         this.activeRoute = route;
+        repaint();
+    }
+
+    public void zoomIn() {
+        if (zoomFactor < 3.0) {
+            zoomFactor = Math.min(3.0, zoomFactor + 0.2);
+            repaint();
+        }
+    }
+
+    public void zoomOut() {
+        if (zoomFactor > 0.6) {
+            zoomFactor = Math.max(0.6, zoomFactor - 0.2);
+            repaint();
+        }
+    }
+
+    public void resetView() {
+        zoomFactor = 1.0;
+        panOffsetX = 0;
+        panOffsetY = 0;
         repaint();
     }
 
@@ -134,8 +163,13 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
         double offsetX = (width - mapDrawW) / 2.0 - minX * scale;
         double offsetY = (height - mapDrawH) / 2.0 - minY * scale;
 
-        int sx = (int) Math.round(rawX * scale + offsetX);
-        int sy = (int) Math.round(rawY * scale + offsetY);
+        double centerX = width / 2.0;
+        double centerY = height / 2.0;
+        double baseSx = rawX * scale + offsetX;
+        double baseSy = rawY * scale + offsetY;
+
+        int sx = (int) Math.round((baseSx - centerX) * zoomFactor + centerX + panOffsetX);
+        int sy = (int) Math.round((baseSy - centerY) * zoomFactor + centerY + panOffsetY);
         return new Point(sx, sy);
     }
 
@@ -197,10 +231,19 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
             for (int y = 25; y < height - 25; y += 35) g2d.drawLine(15, y, width - 15, y);
         }
 
-        // Title banner
+        // Title / Route banner
         g2d.setFont(new Font("Arial", Font.BOLD, 12));
-        g2d.setColor(isDarkMode ? new Color(180, 195, 215) : new Color(50, 75, 105));
-        g2d.drawString("Interactive Campus Map — Click any building to view details", 25, 30);
+        if (activeRoute != null && activeRoute.size() >= 2) {
+            g2d.setColor(new Color(255, 87, 34));
+            String routeBanner = "📍 Active Route: " + activeRoute.get(0).getName() + " ➔ " + activeRoute.get(activeRoute.size() - 1).getName() + " (" + (activeRoute.size() - 1) + " segments)";
+            g2d.drawString(routeBanner, 25, 30);
+        } else if (selectedLocation != null) {
+            g2d.setColor(isDarkMode ? new Color(130, 190, 255) : new Color(30, 80, 160));
+            g2d.drawString("📍 Selected: " + selectedLocation.getName() + " [" + selectedLocation.getCategory() + "] - " + selectedLocation.getBuilding(), 25, 30);
+        } else {
+            g2d.setColor(isDarkMode ? new Color(180, 195, 215) : new Color(50, 75, 105));
+            g2d.drawString("Interactive Campus Map — Click any building to view route & details", 25, 30);
+        }
 
         // Draw Pathways
         drawPathways(g2d);
@@ -226,6 +269,45 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
 
         // Draw Legend
         drawLegend(g2d, width, height);
+
+        // Draw Zoom & Pan Controls
+        drawZoomControls(g2d, width);
+    }
+
+    private void drawZoomControls(Graphics2D g2d, int width) {
+        int zx = width - 125;
+        int zy = 15;
+
+        // Background pill
+        g2d.setColor(isDarkMode ? new Color(32, 38, 52, 220) : new Color(255, 255, 255, 220));
+        g2d.fillRoundRect(zx - 6, zy - 4, 120, 26, 12, 12);
+        g2d.setColor(isDarkMode ? new Color(60, 72, 95) : new Color(200, 215, 235));
+        g2d.drawRoundRect(zx - 6, zy - 4, 120, 26, 12, 12);
+
+        // [+] button
+        g2d.setColor(isDarkMode ? new Color(50, 65, 90) : new Color(230, 240, 255));
+        g2d.fillRoundRect(zx, zy, 20, 18, 4, 4);
+        g2d.setColor(isDarkMode ? Color.WHITE : new Color(20, 40, 70));
+        g2d.setFont(new Font("Arial", Font.BOLD, 12));
+        g2d.drawString("+", zx + 6, zy + 14);
+
+        // [-] button
+        g2d.setColor(isDarkMode ? new Color(50, 65, 90) : new Color(230, 240, 255));
+        g2d.fillRoundRect(zx + 25, zy, 20, 18, 4, 4);
+        g2d.setColor(isDarkMode ? Color.WHITE : new Color(20, 40, 70));
+        g2d.drawString("-", zx + 32, zy + 13);
+
+        // [Fit] button
+        g2d.setColor(isDarkMode ? new Color(50, 65, 90) : new Color(230, 240, 255));
+        g2d.fillRoundRect(zx + 50, zy, 26, 18, 4, 4);
+        g2d.setColor(isDarkMode ? Color.WHITE : new Color(20, 40, 70));
+        g2d.setFont(new Font("Arial", Font.BOLD, 9));
+        g2d.drawString("FIT", zx + 55, zy + 13);
+
+        // Zoom percentage
+        g2d.setColor(isDarkMode ? new Color(180, 200, 230) : new Color(60, 80, 110));
+        g2d.setFont(new Font("Arial", Font.PLAIN, 10));
+        g2d.drawString((int)(zoomFactor * 100) + "%", zx + 82, zy + 13);
     }
 
     private void drawPathways(Graphics2D g2d) {
@@ -472,8 +554,27 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
 
     @Override
     public void mouseClicked(MouseEvent e) {
+        if (isDragging) return;
+
         int mx = e.getX();
         int my = e.getY();
+        int width = getWidth();
+
+        // Check Zoom Controls click
+        int zx = width - 125;
+        int zy = 15;
+        if (my >= zy && my <= zy + 22) {
+            if (mx >= zx && mx <= zx + 22) {
+                zoomIn();
+                return;
+            } else if (mx >= zx + 25 && mx <= zx + 47) {
+                zoomOut();
+                return;
+            } else if (mx >= zx + 50 && mx <= zx + 78) {
+                resetView();
+                return;
+            }
+        }
 
         if (dataManager == null) return;
 
@@ -524,7 +625,12 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
             changed = true;
         }
 
-        if (hoveredLocation != null) {
+        // Check if hovering zoom buttons
+        int zx = getWidth() - 125;
+        int zy = 15;
+        boolean hoveringZoom = (my >= zy && my <= zy + 22 && mx >= zx && mx <= zx + 78);
+
+        if (hoveredLocation != null || hoveringZoom) {
             setCursor(new Cursor(Cursor.HAND_CURSOR));
         } else {
             setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
@@ -535,15 +641,54 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
         }
     }
 
-    @Override public void mousePressed(MouseEvent e) {}
-    @Override public void mouseReleased(MouseEvent e) {}
+    @Override
+    public void mousePressed(MouseEvent e) {
+        dragStart = e.getPoint();
+        isDragging = false;
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        dragStart = null;
+        if (isDragging) {
+            setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+        }
+        isDragging = false;
+    }
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+        if (dragStart != null) {
+            int dx = e.getX() - dragStart.x;
+            int dy = e.getY() - dragStart.y;
+            if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+                isDragging = true;
+                panOffsetX += dx;
+                panOffsetY += dy;
+                dragStart = e.getPoint();
+                setCursor(new Cursor(Cursor.MOVE_CURSOR));
+                repaint();
+            }
+        }
+    }
+
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+        if (e.getWheelRotation() < 0) {
+            zoomIn();
+        } else {
+            zoomOut();
+        }
+    }
+
     @Override public void mouseEntered(MouseEvent e) { setCursor(new Cursor(Cursor.DEFAULT_CURSOR)); }
     @Override public void mouseExited(MouseEvent e) {
         if (hoveredLocation != null) {
             hoveredLocation = null;
             repaint();
         }
+        dragStart = null;
+        isDragging = false;
         setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
     }
-    @Override public void mouseDragged(MouseEvent e) {}
 }

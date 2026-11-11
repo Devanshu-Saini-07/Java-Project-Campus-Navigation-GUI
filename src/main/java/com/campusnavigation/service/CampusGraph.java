@@ -31,11 +31,15 @@ public class CampusGraph {
      * Adds an undirected edge between two campus locations.
      */
     public void addEdge(String srcId, String destId, int distance) {
+        addEdge(srcId, destId, distance, true, "paved");
+    }
+
+    public void addEdge(String srcId, String destId, int distance, boolean isAccessible, String pathType) {
         if (!locationMap.containsKey(srcId) || !locationMap.containsKey(destId)) {
             return;
         }
-        adjacencyList.get(srcId).add(new CampusEdge(srcId, destId, distance));
-        adjacencyList.get(destId).add(new CampusEdge(destId, srcId, distance));
+        adjacencyList.get(srcId).add(new CampusEdge(srcId, destId, distance, isAccessible, pathType));
+        adjacencyList.get(destId).add(new CampusEdge(destId, srcId, distance, isAccessible, pathType));
     }
 
     /**
@@ -61,6 +65,18 @@ public class CampusGraph {
 
     public List<CampusEdge> getNeighbors(String id) {
         return adjacencyList.getOrDefault(id, Collections.emptyList());
+    }
+
+    public int getDistance(String srcId, String destId) {
+        List<CampusEdge> edges = adjacencyList.get(srcId);
+        if (edges != null) {
+            for (CampusEdge edge : edges) {
+                if (edge.getDestinationId().equals(destId)) {
+                    return edge.getDistance();
+                }
+            }
+        }
+        return 0;
     }
 
     public Collection<CampusLocation> getAllLocations() {
