@@ -235,40 +235,54 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
         g2d.setFont(new Font("Arial", Font.BOLD, 12));
         if (activeRoute != null && activeRoute.size() >= 2) {
             g2d.setColor(new Color(255, 87, 34));
-            String routeBanner = "📍 Active Route: " + activeRoute.get(0).getName() + " ➔ " + activeRoute.get(activeRoute.size() - 1).getName() + " (" + (activeRoute.size() - 1) + " segments)";
+            String routeBanner = "Active Route: " + activeRoute.get(0).getName() + " -> " + activeRoute.get(activeRoute.size() - 1).getName() + " (" + (activeRoute.size() - 1) + " segments)";
             g2d.drawString(routeBanner, 25, 30);
         } else if (selectedLocation != null) {
             g2d.setColor(isDarkMode ? new Color(130, 190, 255) : new Color(30, 80, 160));
-            g2d.drawString("📍 Selected: " + selectedLocation.getName() + " [" + selectedLocation.getCategory() + "] - " + selectedLocation.getBuilding(), 25, 30);
+            g2d.drawString("Selected: " + selectedLocation.getName() + " [" + selectedLocation.getCategory() + "] - " + selectedLocation.getBuilding(), 25, 30);
         } else {
             g2d.setColor(isDarkMode ? new Color(180, 195, 215) : new Color(50, 75, 105));
-            g2d.drawString("Interactive Campus Map — Click any building to view route & details", 25, 30);
+            g2d.drawString("Interactive Campus Map - Click any building to view route & details", 25, 30);
         }
 
-        // Draw Pathways
-        drawPathways(g2d);
-
-        // Highlight Active Route
+        // Draw Pathways & Route
         if (activeRoute != null && activeRoute.size() >= 2) {
+            // ONLY draw the active route segments from current to destination - nothing else!
             for (int i = 0; i < activeRoute.size() - 1; i++) {
                 CampusLocation from = activeRoute.get(i);
                 CampusLocation to = activeRoute.get(i + 1);
                 Point p1 = getScreenPos(from);
                 Point p2 = getScreenPos(to);
-                drawPath(g2d, p1.x, p1.y, p2.x, p2.y, 0, true);
+                int segDist = (dataManager != null && dataManager.getGraph() != null)
+                              ? dataManager.getGraph().getDistance(from.getId(), to.getId()) : 0;
+                drawPath(g2d, p1.x, p1.y, p2.x, p2.y, segDist, true);
             }
+        } else {
+            // General overview: draw all campus pathways
+            drawPathways(g2d);
         }
 
         // Draw Location Nodes
-        if (dataManager != null) {
+        if (activeRoute != null && activeRoute.size() >= 2) {
+            // ONLY show the nodes in the active route (current to destination) - nothing else!
+            for (CampusLocation loc : activeRoute) {
+                drawLocationNode(g2d, loc);
+            }
+        } else if (selectedLocation != null) {
+            // Single location selected without a route
+            drawLocationNode(g2d, selectedLocation);
+        } else if (dataManager != null) {
+            // General overview: draw all locations
             Collection<CampusLocation> locs = dataManager.getAllLocations();
             for (CampusLocation loc : locs) {
                 drawLocationNode(g2d, loc);
             }
         }
 
-        // Draw Legend
-        drawLegend(g2d, width, height);
+        // Draw Legend (only in general overview mode when all nodes are visible)
+        if (activeRoute == null && selectedLocation == null) {
+            drawLegend(g2d, width, height);
+        }
 
         // Draw Zoom & Pan Controls
         drawZoomControls(g2d, width);
@@ -386,18 +400,11 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
         Color nodeColor = getCategoryColor(loc.getCategory());
         Color borderColor = isDarkMode ? new Color(130, 145, 165) : new Color(50, 70, 95);
 
-        // Hover halo
-        if (isHovered) {
+        // Hover halo (only in overview mode)
+        if (isHovered && activeRoute == null) {
             g2d.setColor(new Color(255, 215, 0, 120));
             g2d.fillRoundRect(x - HOVER_PADDING, y - HOVER_PADDING,
                     NODE_WIDTH + 2 * HOVER_PADDING, NODE_HEIGHT + 2 * HOVER_PADDING, 10, 10);
-        }
-
-        // Selection highlight
-        if (isSelected) {
-            g2d.setColor(new Color(255, 59, 48));
-            g2d.setStroke(new BasicStroke(2.5f));
-            g2d.drawRoundRect(x - 3, y - 3, NODE_WIDTH + 6, NODE_HEIGHT + 6, 9, 9);
         }
 
         // Node background
@@ -578,7 +585,11 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
 
         if (dataManager == null) return;
 
-        for (CampusLocation loc : dataManager.getAllLocations()) {
+        Collection<CampusLocation> clickableLocs = (activeRoute != null && activeRoute.size() >= 2)
+                                                   ? activeRoute
+                                                   : dataManager.getAllLocations();
+
+        for (CampusLocation loc : clickableLocs) {
             Point pos = getScreenPos(loc);
             int x = pos.x - (NODE_WIDTH / 2);
             int y = pos.y - (NODE_HEIGHT / 2);
@@ -603,7 +614,11 @@ public class CampusMap extends Canvas implements MouseListener, MouseMotionListe
 
         hoveredLocation = null;
         if (dataManager != null) {
-            for (CampusLocation loc : dataManager.getAllLocations()) {
+            Collection<CampusLocation> hoverableLocs = (activeRoute != null && activeRoute.size() >= 2)
+                                                       ? activeRoute
+                                                       : dataManager.getAllLocations();
+
+            for (CampusLocation loc : hoverableLocs) {
                 Point pos = getScreenPos(loc);
                 int x = pos.x - (NODE_WIDTH / 2);
                 int y = pos.y - (NODE_HEIGHT / 2);
