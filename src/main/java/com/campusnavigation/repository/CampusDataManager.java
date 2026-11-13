@@ -13,10 +13,10 @@ import com.campusnavigation.service.CampusGraph;
  * Reads and writes from local text files with automatic creation of default data.
  */
 public class CampusDataManager {
-    private static final String DATA_FILE = "campus_data.txt";
-    private static final String EDGES_FILE = "campus_edges.txt";
-    private static final String ROOMS_FILE = "campus_rooms.txt";
-    private static final String BUS_FILE = "bus_routes.txt";
+    private static final String DATA_FILE = AtomicFileUtil.resolveFile("campus_data.txt").getPath();
+    private static final String EDGES_FILE = AtomicFileUtil.resolveFile("campus_edges.txt").getPath();
+    private static final String ROOMS_FILE = AtomicFileUtil.resolveFile("campus_rooms.txt").getPath();
+    private static final String BUS_FILE = AtomicFileUtil.resolveFile("bus_routes.txt").getPath();
 
     private Map<String, CampusLocation> locations;
     private List<CampusEdge> edges;

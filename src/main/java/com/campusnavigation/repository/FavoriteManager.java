@@ -8,7 +8,7 @@ import java.util.*;
  * Persists data to 'favorites.txt' with in-memory fallback.
  */
 public class FavoriteManager {
-    private static final String FAVORITES_FILE = "favorites.txt";
+    private static final String FAVORITES_FILE = AtomicFileUtil.resolveFile("favorites.txt").getPath();
     private Set<String> favoriteIds;
 
     public FavoriteManager() {

@@ -14,6 +14,26 @@ public final class AtomicFileUtil {
 
     private AtomicFileUtil() {}
 
+    /**
+     * Resolves a filename by checking the current directory and walking up
+     * parent directory levels (e.g. when executed from src/main/java/... or bin).
+     */
+    public static File resolveFile(String filename) {
+        File direct = new File(filename);
+        if (direct.exists()) {
+            return direct;
+        }
+
+        String[] prefixes = {"..", "../..", "../../..", "../../../.."};
+        for (String p : prefixes) {
+            File candidate = new File(p, filename);
+            if (candidate.exists()) {
+                return candidate;
+            }
+        }
+        return direct;
+    }
+
     public static synchronized void writeAtomic(String filename, List<String> lines) throws IOException {
         Path targetPath = Paths.get(filename);
         Path parentDir = targetPath.getParent();

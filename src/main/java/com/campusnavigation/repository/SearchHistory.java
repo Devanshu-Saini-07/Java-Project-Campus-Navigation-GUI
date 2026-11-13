@@ -8,7 +8,7 @@ import java.util.*;
  * Stores the last 5-10 recent search queries in 'history.txt'.
  */
 public class SearchHistory {
-    private static final String HISTORY_FILE = "history.txt";
+    private static final String HISTORY_FILE = AtomicFileUtil.resolveFile("history.txt").getPath();
     private static final int MAX_HISTORY = 10;
     private LinkedList<String> historyList;
 

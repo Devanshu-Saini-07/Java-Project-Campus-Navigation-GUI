@@ -14,7 +14,7 @@ import com.campusnavigation.model.UserRole;
  */
 public class UserManager {
 
-    private static final String USERS_FILE = "users.txt";
+    private static final String USERS_FILE = AtomicFileUtil.resolveFile("users.txt").getPath();
     private final Map<String, User> userMap = new HashMap<>();
     private final SecureRandom random = new SecureRandom();
 
